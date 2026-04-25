@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORLOG — Jogo dos Deuses</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap');
+
+:root {
+  --gold: #c8963e;
+  --gold-bright: #f0c060;
+  --gold-dark: #8b6914;
+  --blood: #8b1a1a;
+  --blood-light: #c0392b;
+  --stone: #2a2420;
+  --stone-mid: #3d3530;
+  --stone-light: #5a4f47;
+  --wood: #4a3420;
+  --wood-light: #6b4c2a;
+  --rune-blue: #4a7fa5;
+  --rune-glow: #7ec8e3;
+  --parchment: #e8d9b0;
+  --parchment-dark: #c4a96a;
+  --text-light: #f0e6cc;
+  --health-green: #2d7a2d;
+  --health-red: #8b1a1a;
+  --thor-color: #4a9ade;
+  --idun-color: #4aad5a;
+  --odin-color: #7a4aad;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #1a1210;
+  font-family: 'IM Fell English', serif;
+  color: var(--text-light);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Runic background pattern */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    radial-gradient(ellipse at 20% 50%, rgba(139,26,26,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 50%, rgba(74,127,165,0.06) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ctext x='10' y='40' font-size='20' fill='rgba(200,150,62,0.04)' font-family='serif'%3Eᚱᚢᚾᚨ%3C/text%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── SCREENS ─── */
+.screen { 
+  display: none; 
+  position: relative; 
+  z-index: 1;
+  min-height: 100vh;
+}
+.screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+/* ─── TITLE SCREEN ─── */
+#screen-title {
+  background: 
+    linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(26,18,16,0.95) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Ccircle cx='100' cy='100' r='90' fill='none' stroke='rgba(200,150,62,0.05)' stroke-width='2'/%3E%3Cline x1='100' y1='10' x2='100' y2='190' stroke='rgba(200,150,62,0.03)' stroke-width='1'/%3E%3Cline x1='10' y1='100' x2='190' y2='100' stroke='rgba(200,150,62,0.03)' stroke-width='1'/%3E%3C/svg%3E");
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.title-rune-border {
+  border: 2px solid var(--gold-dark);
+  border-radius: 4px;
+  padding: 60px 80px;
+  position: relative;
+  max-width: 700px;
+  width: 90%;
+  background: radial-gradient(ellipse at center, rgba(42,36,32,0.9) 0%, rgba(26,18,16,0.98) 100%);
+  box-shadow: 
+    0 0 60px rgba(200,150,62,0.15),
+    inset 0 0 40px rgba(0,0,0,0.5);
+}
+
+.title-rune-border::before,
+.title-rune-border::after {
+  content: 'ᚨ ᚱ ᚢ ᚾ ᚨ ᚱ ᚢ ᚾ ᚨ ᚱ ᚢ ᚾ';
+  position: absolute;
+  color: var(--gold-dark);
+  font-size: 10px;
+  letter-spacing: 4px;
+  opacity: 0.6;
+}
+.title-rune-border::before { top: 8px; left: 50%; transform: translateX(-50%); }
+.title-rune-border::after { bottom: 8px; left: 50%; transform: translateX(-50%); }
+
+.corner-rune {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-color: var(--gold);
+  opacity: 0.7;
+}
+.corner-rune.tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
+.corner-rune.tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
+.corner-rune.bl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
+.corner-rune.br { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
+
+.game-subtitle { 
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: var(--gold-dark);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.game-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 72px;
+  font-weight: 900;
+  color: var(--gold-bright);
+  text-shadow: 
+    0 0 20px rgba(240,192,96,0.5),
+    0 0 60px rgba(240,192,96,0.2),
+    4px 4px 0 rgba(0,0,0,0.8);
+  line-height: 1;
+  margin-bottom: 8px;
+  letter-spacing: 8px;
+}
+
+.game-tagline {
+  font-style: italic;
+  color: var(--parchment-dark);
+  font-size: 16px;
+  margin-bottom: 50px;
+  opacity: 0.8;
+}
+
+.menu-btn {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 10px auto;
+  padding: 14px 30px;
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid var(--gold-dark);
+  background: linear-gradient(135deg, rgba(200,150,62,0.15) 0%, rgba(200,150,62,0.05) 100%);
+  color: var(--gold);
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(200,150,62,0.3) 0%, rgba(200,150,62,0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.menu-btn:hover { 
+  color: var(--gold-bright);
+  border-color: var(--gold);
+  box-shadow: 0 0 20px rgba(200,150,62,0.3);
+  transform: translateY(-1px);
+}
+.menu-btn:hover::before { opacity: 1; }
+.menu-btn:active { transform: translateY(1px); }
+
+.menu-btn.primary {
+  border-color: var(--gold);
+  background: linear-gradient(135deg, rgba(200,150,62,0.25) 0%, rgba(200,150,62,0.1) 100%);
+  font-size: 15px;
+}
+
+/* Difficulty select */
+.diff-select {
+  width: 100%;
+  max-width: 320px;
+  margin: 10px auto;
+  padding: 12px 20px;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  background: rgba(42,36,32,0.9);
+  border: 1px solid var(--gold-dark);
+  color: var(--gold);
+  cursor: pointer;
+  display: block;
+  appearance: none;
+  text-align: center;
+  outline: none;
+}
+.diff-select option { background: #1a1210; }
+.diff-select:focus { border-color: var(--gold); }
+
+/* ─── GAME SCREEN ─── */
+#screen-game {
+  flex-direction: column;
+  padding: 0;
+  min-height: 100vh;
+  background: #1a1210;
+  justify-content: flex-start;
+}
+
+.game-layout {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px;
+  gap: 10px;
+}
+
+/* Player panel */
+.player-panel {
+  border: 1px solid var(--gold-dark);
+  background: linear-gradient(135deg, rgba(42,36,32,0.95) 0%, rgba(30,24,20,0.98) 100%);
+  padding: 14px 20px;
+  position: relative;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+}
+
+.player-panel.active-player {
+  border-color: var(--gold);
+  box-shadow: 0 0 20px rgba(200,150,62,0.25), inset 0 0 20px rgba(0,0,0,0.4);
+}
+
+.player-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.player-name {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 18px;
+  color: var(--gold-bright);
+  text-shadow: 0 0 10px rgba(240,192,96,0.4);
+  flex: 1;
+}
+
+.player-turn-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 3px 10px;
+  border: 1px solid var(--gold);
+  color: var(--gold-bright);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.active-player .player-turn-badge { opacity: 1; }
+
+/* Health bar */
+.health-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.health-icon { font-size: 18px; }
+
+.health-bar-wrap {
+  flex: 1;
+  height: 18px;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(139,26,26,0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.health-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--health-red) 0%, #c0392b 60%, #e74c3c 100%);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+.health-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+}
+
+.health-text {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  color: var(--parchment);
+  min-width: 50px;
+  text-align: right;
+}
+
+/* Tokens */
+.token-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.token-label {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--parchment-dark);
+  opacity: 0.8;
+}
+
+.token-display {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.token-gem {
+  width: 16px;
+  height: 16px;
+  background: radial-gradient(circle at 35% 35%, #9b59b6, #5a1d7a);
+  border-radius: 50%;
+  border: 1px solid #7d3c98;
+  box-shadow: 0 0 6px rgba(155,89,182,0.6);
+  transition: all 0.3s;
+  cursor: default;
+}
+
+.token-count {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #c39bd3;
+  text-shadow: 0 0 8px rgba(155,89,182,0.6);
+}
+
+/* ─── DICE AREA ─── */
+.dice-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  position: relative;
+}
+
+.player-dice-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Dice */
+.die {
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg, #5a4f47 0%, #3d3530 50%, #2a2420 100%);
+  border: 2px solid var(--gold-dark);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s;
+  box-shadow: 
+    3px 3px 8px rgba(0,0,0,0.7),
+    inset 1px 1px 0 rgba(255,255,255,0.05);
+  user-select: none;
+}
+
+.die:hover:not(.locked):not(.inactive) {
+  border-color: var(--gold);
+  transform: translateY(-3px);
+  box-shadow: 3px 6px 12px rgba(0,0,0,0.8), 0 0 10px rgba(200,150,62,0.2);
+}
+
+.die.locked {
+  border-color: var(--gold-bright);
+  background: linear-gradient(135deg, #6b5c3a 0%, #4a3a20 50%, #3a2e14 100%);
+  box-shadow: 
+    3px 3px 8px rgba(0,0,0,0.7),
+    0 0 12px rgba(200,150,62,0.35),
+    inset 1px 1px 0 rgba(255,255,255,0.08);
+}
+
+.die.golden {
+  border-color: var(--gold-bright);
+  box-shadow: 3px 3px 8px rgba(0,0,0,0.7), 0 0 20px rgba(240,192,96,0.6), 0 0 40px rgba(240,192,96,0.2);
+  animation: golden-pulse 1.5s infinite;
+}
+
+@keyframes golden-pulse {
+  0%, 100% { box-shadow: 3px 3px 8px rgba(0,0,0,0.7), 0 0 15px rgba(240,192,96,0.5), 0 0 30px rgba(240,192,96,0.15); }
+  50% { box-shadow: 3px 3px 8px rgba(0,0,0,0.7), 0 0 25px rgba(240,192,96,0.8), 0 0 50px rgba(240,192,96,0.3); }
+}
+
+.die.inactive { cursor: default; opacity: 0.5; }
+
+.die.rolling { animation: roll-shake 0.4s ease; }
+@keyframes roll-shake {
+  0% { transform: rotate(-15deg) scale(0.9); }
+  25% { transform: rotate(10deg) scale(1.05); }
+  50% { transform: rotate(-8deg) scale(0.95); }
+  75% { transform: rotate(5deg) scale(1.02); }
+  100% { transform: rotate(0) scale(1); }
+}
+
+.die-face {
+  font-size: 32px;
+  line-height: 1;
+  transition: all 0.2s;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+}
+
+.die.golden .die-face {
+  filter: drop-shadow(0 0 8px rgba(240,192,96,0.9)) drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+  animation: golden-spin 3s linear infinite;
+}
+@keyframes golden-spin {
+  0% { filter: drop-shadow(0 0 8px rgba(240,192,96,0.9)) brightness(1); }
+  50% { filter: drop-shadow(0 0 12px rgba(240,192,96,1)) brightness(1.3); }
+  100% { filter: drop-shadow(0 0 8px rgba(240,192,96,0.9)) brightness(1); }
+}
+
+.die-lock-icon {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.die.locked .die-lock-icon { opacity: 1; }
+
+/* ─── DIVIDER ─── */
+.battle-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 6px 20px;
+}
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dark), var(--gold), var(--gold-dark), transparent);
+}
+.divider-rune {
+  font-size: 20px;
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(200,150,62,0.7);
+}
+
+/* ─── CONTROLS ─── */
+.controls-area {
+  border: 1px solid var(--gold-dark);
+  background: linear-gradient(135deg, rgba(42,36,32,0.95) 0%, rgba(30,24,20,0.98) 100%);
+  padding: 16px 20px;
+}
+
+.controls-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.roll-counter {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--parchment-dark);
+}
+
+.roll-pips {
+  display: flex;
+  gap: 6px;
+}
+
+.roll-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--stone-light);
+  border: 1px solid var(--gold-dark);
+  transition: all 0.3s;
+}
+.roll-pip.used {
+  background: var(--gold);
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 6px rgba(200,150,62,0.6);
+}
+
+.phase-label {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-left: auto;
+  opacity: 0.9;
+}
+
+.controls-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 10px 22px;
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-roll {
+  background: linear-gradient(135deg, rgba(139,26,26,0.4) 0%, rgba(139,26,26,0.2) 100%);
+  border-color: var(--blood-light);
+  color: #e07070;
+}
+.btn-roll:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(139,26,26,0.7) 0%, rgba(139,26,26,0.4) 100%);
+  box-shadow: 0 0 15px rgba(192,57,43,0.4);
+  color: #ffaaaa;
+}
+
+.btn-resolve {
+  background: linear-gradient(135deg, rgba(200,150,62,0.3) 0%, rgba(200,150,62,0.1) 100%);
+  border-color: var(--gold);
+  color: var(--gold-bright);
+}
+.btn-resolve:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(200,150,62,0.5) 0%, rgba(200,150,62,0.25) 100%);
+  box-shadow: 0 0 15px rgba(200,150,62,0.4);
+}
+
+.btn-god {
+  background: linear-gradient(135deg, rgba(122,74,173,0.35) 0%, rgba(122,74,173,0.15) 100%);
+  border-color: #7a4aad;
+  color: #c39bd3;
+  font-size: 11px;
+  padding: 8px 14px;
+}
+.btn-god:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(122,74,173,0.55) 0%, rgba(122,74,173,0.3) 100%);
+  box-shadow: 0 0 15px rgba(122,74,173,0.5);
+  color: #e8d5f5;
+}
+
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* God powers panel */
+.god-powers {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.god-card {
+  border: 1px solid;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  text-align: center;
+}
+
+.god-card.thor { border-color: rgba(74,154,222,0.5); background: rgba(74,154,222,0.06); }
+.god-card.idun { border-color: rgba(74,173,90,0.5); background: rgba(74,173,90,0.06); }
+.god-card.odin { border-color: rgba(122,74,173,0.5); background: rgba(122,74,173,0.06); }
+
+.god-card:hover:not(.disabled) {
+  transform: translateY(-2px);
+}
+.god-card.thor:hover:not(.disabled) { box-shadow: 0 4px 15px rgba(74,154,222,0.3); border-color: var(--thor-color); }
+.god-card.idun:hover:not(.disabled) { box-shadow: 0 4px 15px rgba(74,173,90,0.3); border-color: var(--idun-color); }
+.god-card.odin:hover:not(.disabled) { box-shadow: 0 4px 15px rgba(122,74,173,0.3); border-color: var(--odin-color); }
+
+.god-card.disabled { opacity: 0.35; cursor: not-allowed; }
+
+.god-icon { font-size: 24px; margin-bottom: 4px; }
+.god-name { 
+  font-family: 'Cinzel', serif; 
+  font-size: 11px; 
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin-bottom: 2px;
+}
+.god-card.thor .god-name { color: var(--thor-color); }
+.god-card.idun .god-name { color: var(--idun-color); }
+.god-card.odin .god-name { color: var(--odin-color); }
+
+.god-desc { font-size: 10px; color: var(--parchment-dark); opacity: 0.8; line-height: 1.3; }
+.god-cost { 
+  font-family: 'Cinzel', serif;
+  font-size: 10px; 
+  margin-top: 5px;
+  color: #c39bd3;
+}
+
+/* ─── LOG PANEL ─── */
+.log-panel {
+  max-height: 90px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--parchment-dark);
+  font-style: italic;
+  padding: 4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-dark) transparent;
+}
+
+.log-entry { 
+  padding: 1px 0; 
+  border-bottom: 1px solid rgba(200,150,62,0.05);
+}
+.log-entry:last-child { border-bottom: none; }
+.log-entry.damage { color: #e07070; }
+.log-entry.heal { color: #70c070; }
+.log-entry.god { color: #c39bd3; }
+.log-entry.resolve { color: var(--gold); }
+
+/* ─── RESULT OVERLAY ─── */
+.result-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+.result-overlay.show { display: flex; }
+
+.result-box {
+  border: 2px solid var(--gold);
+  background: linear-gradient(135deg, #2a2420 0%, #1a1210 100%);
+  padding: 50px 70px;
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+  position: relative;
+  animation: result-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes result-appear {
+  from { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.result-rune { font-size: 48px; margin-bottom: 10px; }
+.result-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 32px;
+  color: var(--gold-bright);
+  text-shadow: 0 0 20px rgba(240,192,96,0.6);
+  margin-bottom: 8px;
+}
+.result-sub {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--parchment-dark);
+  margin-bottom: 30px;
+}
+.result-box .btn {
+  margin: 6px;
+  padding: 12px 28px;
+}
+
+/* ─── INSTRUCTIONS ─── */
+#screen-instructions {
+  padding: 30px 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.instructions-content {
+  border: 1px solid var(--gold-dark);
+  background: rgba(42,36,32,0.95);
+  padding: 40px 50px;
+  position: relative;
+}
+
+.inst-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 30px;
+  color: var(--gold-bright);
+  text-align: center;
+  margin-bottom: 30px;
+  text-shadow: 0 0 15px rgba(240,192,96,0.4);
+}
+
+.inst-section {
+  margin-bottom: 24px;
+}
+
+.inst-section h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--gold);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--gold-dark);
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+
+.inst-section p, .inst-section li {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--parchment-dark);
+  margin-bottom: 6px;
+}
+
+.inst-section ul { padding-left: 20px; }
+
+.dice-guide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.dice-guide-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(200,150,62,0.15);
+}
+
+.dice-guide-icon { font-size: 24px; flex-shrink: 0; }
+.dice-guide-text { font-size: 12px; color: var(--parchment-dark); line-height: 1.5; }
+.dice-guide-text strong { color: var(--gold); font-family: 'Cinzel', serif; font-size: 11px; display: block; margin-bottom: 2px; }
+
+/* ─── BOT INDICATOR ─── */
+.bot-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--parchment-dark);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.bot-thinking.show { opacity: 1; }
+.bot-dot { 
+  width: 4px; height: 4px; 
+  border-radius: 50%; 
+  background: var(--gold);
+  animation: bot-blink 1s infinite;
+}
+.bot-dot:nth-child(2) { animation-delay: 0.2s; }
+.bot-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bot-blink { 0%,100% { opacity: 0.2; } 50% { opacity: 1; } }
+
+/* ─── TOKEN POOL ─── */
+.token-pool-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(122,74,173,0.3);
+  margin: 6px 0;
+}
+.token-pool-label {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #9b59b6;
+}
+.token-pool-gems {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.token-pool-count {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  color: #c39bd3;
+}
+
+/* Combat animation overlay */
+.combat-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.combat-flash.red { background: radial-gradient(circle, rgba(139,26,26,0.4) 0%, transparent 70%); }
+.combat-flash.gold { background: radial-gradient(circle, rgba(200,150,62,0.3) 0%, transparent 70%); }
+.combat-flash.show { opacity: 1; }
+
+/* God use spinner */
+.spinner-input {
+  background: rgba(0,0,0,0.5);
+  border: 1px solid #7a4aad;
+  color: var(--parchment);
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  padding: 4px 8px;
+  width: 60px;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .game-title { font-size: 48px; }
+  .title-rune-border { padding: 40px 30px; }
+  .die { width: 55px; height: 55px; }
+  .die-face { font-size: 24px; }
+  .god-powers { grid-template-columns: 1fr; }
+  .instructions-content { padding: 24px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Combat flash overlay -->
+<div class="combat-flash" id="combatFlash"></div>
+
+<!-- ════════ TITLE SCREEN ════════ -->
+<div id="screen-title" class="screen active">
+  <div class="title-rune-border">
+    <div class="corner-rune tl"></div>
+    <div class="corner-rune tr"></div>
+    <div class="corner-rune bl"></div>
+    <div class="corner-rune br"></div>
+    <div class="game-subtitle">ᚺᚢ ᛊᚺᚨᛚᛚ ᛈᛚᚨᚤ</div>
+    <div class="game-title">ORLOG</div>
+    <div class="game-tagline">"O destino se joga nos dados dos deuses"</div>
+    
+    <button class="menu-btn primary" onclick="startGame('coop')">⚔️ Modo Cooperativo (2 Jogadores)</button>
+    
+    <select class="diff-select" id="botDifficulty">
+      <option value="easy">Dificuldade: Fácil</option>
+      <option value="medium" selected>Dificuldade: Médio</option>
+      <option value="hard">Dificuldade: Difícil</option>
+    </select>
+    <button class="menu-btn" onclick="startGame('bot')">🤖 Modo VS Bot</button>
+    
+    <button class="menu-btn" onclick="showScreen('instructions')">📜 Instruções</button>
+  </div>
+</div>
+
+<!-- ════════ INSTRUCTIONS ════════ -->
+<div id="screen-instructions" class="screen" style="justify-content:flex-start;padding-top:30px;">
+  <div class="instructions-content" style="width:100%;max-width:780px;">
+    <div class="inst-title">Como Jogar Orlog</div>
+    
+    <div class="inst-section">
+      <h3>Objetivo</h3>
+      <p>Reduza os pontos de vida do oponente a 0 usando dados, estratégia e o favor dos deuses nórdicos.</p>
+    </div>
+
+    <div class="inst-section">
+      <h3>Início do Jogo</h3>
+      <ul>
+        <li>Cada jogador começa com <strong style="color:var(--gold)">15 pontos de vida</strong> e <strong style="color:var(--gold)">6 dados</strong></li>
+        <li>Há um banco de <strong style="color:#c39bd3">20 fichas de favor</strong> compartilhado</li>
+        <li>Os jogadores se alternam em turnos até que um chegue a 0 de vida</li>
+      </ul>
+    </div>
+
+    <div class="inst-section">
+      <h3>Fases do Turno</h3>
+      <ul>
+        <li><strong style="color:var(--gold)">Rolagem:</strong> Role os dados até 3 vezes por turno</li>
+        <li><strong style="color:var(--gold)">Seleção:</strong> Após cada rolagem, clique nos dados para <em>manter</em> (travar com ⚿)</li>
+        <li><strong style="color:var(--gold)">Poderes:</strong> Use fichas para ativar poderes divinos antes de resolver</li>
+        <li><strong style="color:var(--gold)">Resolução:</strong> Clique em "Resolver" para calcular o combate</li>
+      </ul>
+    </div>
+
+    <div class="inst-section">
+      <h3>Os Dados</h3>
+      <div class="dice-guide">
+        <div class="dice-guide-item">
+          <div class="dice-guide-icon">🪓</div>
+          <div class="dice-guide-text"><strong>Machado — Ataque</strong>Causa 1 de dano. Bloqueado por Elmo.</div>
+        </div>
+        <div class="dice-guide-item">
+          <div class="dice-guide-icon">⛑️</div>
+          <div class="dice-guide-text"><strong>Elmo — Defesa</strong>Bloqueia 1 Machado do oponente.</div>
+        </div>
+        <div class="dice-guide-item">
+          <div class="dice-guide-icon">🏹</div>
+          <div class="dice-guide-text"><strong>Flecha — Ataque Ranged</strong>Causa 1 de dano. Bloqueado por Escudo.</div>
+        </div>
+        <div class="dice-guide-item">
+          <div class="dice-guide-icon">🛡️</div>
+          <div class="dice-guide-text"><strong>Escudo — Defesa</strong>Bloqueia 1 Flecha do oponente.</div>
+        </div>
+        <div class="dice-guide-item">
+          <div class="dice-guide-icon">✋</div>
+          <div class="dice-guide-text"><strong>Mão — Roubo</strong>Rouba 1 ficha de favor do oponente.</div>
+        </div>
+        <div class="dice-guide-item">
+          <div class="dice-guide-icon">✨</div>
+          <div class="dice-guide-text"><strong>Face Dourada — Divino</strong>Coringa: age como qualquer face + concede 1 ficha de favor.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inst-section">
+      <h3>Poderes dos Deuses</h3>
+      <ul>
+        <li><strong style="color:var(--thor-color)">⚡ Thor</strong> — Gasta fichas para causar dano direto (1 dano por ficha)</li>
+        <li><strong style="color:var(--idun-color)">🍎 Idunn</strong> — Gasta fichas para curar vida (1 cura por ficha)</li>
+        <li><strong style="color:var(--odin-color)">🪬 Odin</strong> — Sacrifica 2 de vida para ganhar 3 fichas de favor</li>
+      </ul>
+      <p style="margin-top:8px;font-size:12px;color:var(--parchment-dark)">⚠️ As fichas vêm do banco compartilhado. Se o banco estiver vazio, mãos e faces douradas não geram fichas.</p>
+    </div>
+
+    <div style="text-align:center;margin-top:30px;">
+      <button class="menu-btn" onclick="showScreen('title')">← Voltar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ GAME SCREEN ════════ -->
+<div id="screen-game" class="screen">
+  <div class="game-layout">
+    
+    <!-- Player 1 panel (top) -->
+    <div class="player-panel" id="panel-p1">
+      <div class="player-header">
+        <div class="player-name" id="name-p1">Jogador 1</div>
+        <div class="player-turn-badge">SEU TURNO</div>
+        <div class="bot-thinking" id="bot-thinking">
+          <span>Pensando</span>
+          <div class="bot-dot"></div><div class="bot-dot"></div><div class="bot-dot"></div>
+        </div>
+      </div>
+      <div class="health-section">
+        <div class="health-icon">❤️</div>
+        <div class="health-bar-wrap">
+          <div class="health-bar-fill" id="hp-bar-p1" style="width:100%"></div>
+        </div>
+        <div class="health-text" id="hp-text-p1">15 / 15</div>
+      </div>
+      <div class="token-section">
+        <div class="token-label">FICHAS:</div>
+        <div class="token-count" id="tokens-p1">0 🔮</div>
+      </div>
+    </div>
+
+    <!-- Dice + controls area -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      
+      <!-- Token pool -->
+      <div class="token-pool-row">
+        <div class="token-pool-label">BANCO DE FICHAS</div>
+        <div class="token-pool-gems" id="pool-gems"></div>
+        <div class="token-pool-count" id="pool-count">20</div>
+      </div>
+
+      <!-- Dice area -->
+      <div class="dice-area">
+        <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:3px;color:var(--parchment-dark);opacity:0.6;" id="dice-owner-label">DADOS — JOGADOR 1</div>
+        <div class="player-dice-row" id="dice-row"></div>
+      </div>
+
+      <!-- Battle divider -->
+      <div class="battle-divider">
+        <div class="divider-line"></div>
+        <div class="divider-rune">ᛜ</div>
+        <div class="divider-rune" style="color:var(--blood-light);">⚔️</div>
+        <div class="divider-rune">ᛜ</div>
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-area">
+        <div class="controls-top">
+          <div class="roll-counter">ROLAGENS:</div>
+          <div class="roll-pips">
+            <div class="roll-pip" id="pip0"></div>
+            <div class="roll-pip" id="pip1"></div>
+            <div class="roll-pip" id="pip2"></div>
+          </div>
+          <div class="phase-label" id="phase-label">FASE: ROLAGEM</div>
+        </div>
+        
+        <div class="controls-btns">
+          <button class="btn btn-roll" id="btn-roll" onclick="doRoll()">🎲 Rolar Dados</button>
+          <button class="btn btn-resolve" id="btn-resolve" onclick="doResolve()" disabled>⚔️ Resolver Turno</button>
+          <button class="btn" style="border-color:var(--stone-light);color:var(--parchment-dark);font-size:11px;" onclick="confirmQuit()">✕ Sair</button>
+        </div>
+
+        <!-- God powers -->
+        <div class="god-powers" id="god-powers">
+          <div class="god-card thor" id="god-thor" onclick="useGod('thor')">
+            <div class="god-icon">⚡</div>
+            <div class="god-name">Thor</div>
+            <div class="god-desc">Dano direto ao oponente</div>
+            <div class="god-cost">1 ficha = 1 dano</div>
+          </div>
+          <div class="god-card idun" id="god-idun" onclick="useGod('idun')">
+            <div class="god-icon">🍎</div>
+            <div class="god-name">Idunn</div>
+            <div class="god-desc">Cura seus pontos de vida</div>
+            <div class="god-cost">1 ficha = 1 cura</div>
+          </div>
+          <div class="god-card odin" id="god-odin" onclick="useGod('odin')">
+            <div class="god-icon">🪬</div>
+            <div class="god-name">Odin</div>
+            <div class="god-desc">Sacrifica 2 vida → ganha 3 fichas</div>
+            <div class="god-cost">Custo: 2 de vida</div>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div style="margin-top:12px;border-top:1px solid rgba(200,150,62,0.1);padding-top:10px;">
+          <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--gold-dark);margin-bottom:6px;">CRÔNICA DE BATALHA</div>
+          <div class="log-panel" id="battle-log"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Player 2 panel (bottom) -->
+    <div class="player-panel" id="panel-p2">
+      <div class="player-header">
+        <div class="player-name" id="name-p2">Jogador 2</div>
+        <div class="player-turn-badge">SEU TURNO</div>
+      </div>
+      <div class="health-section">
+        <div class="health-icon">❤️</div>
+        <div class="health-bar-wrap">
+          <div class="health-bar-fill" id="hp-bar-p2" style="width:100%"></div>
+        </div>
+        <div class="health-text" id="hp-text-p2">15 / 15</div>
+      </div>
+      <div class="token-section">
+        <div class="token-label">FICHAS:</div>
+        <div class="token-count" id="tokens-p2">0 🔮</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Result overlay -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-box">
+    <div class="corner-rune tl"></div>
+    <div class="corner-rune tr"></div>
+    <div class="corner-rune bl"></div>
+    <div class="corner-rune br"></div>
+    <div class="result-rune" id="result-rune">⚔️</div>
+    <div class="result-title" id="result-title">Vitória!</div>
+    <div class="result-sub" id="result-sub">O destino foi decidido</div>
+    <div style="margin-top:20px;">
+      <button class="btn btn-resolve" onclick="startGame(currentMode,true)">🔄 Jogar Novamente</button>
+      <button class="btn" style="border-color:var(--stone-light);color:var(--parchment-dark);" onclick="showScreen('title')">🏠 Menu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════
+
+const FACES = ['axe','helmet','arrow','shield','hand','golden'];
+const FACE_ICONS = { axe:'🪓', helmet:'⛑️', arrow:'🏹', shield:'🛡️', hand:'✋', golden:'✨' };
+const MAX_HP = 15;
+const DICE_COUNT = 6;
+const MAX_ROLLS = 3;
+const TOKEN_POOL_MAX = 20;
+
+let state = {};
+let currentMode = 'coop';
+let botDifficulty = 'medium';
+
+function initState(mode) {
+  currentMode = mode;
+  return {
+    players: [
+      { hp: MAX_HP, tokens: 0, dice: Array(DICE_COUNT).fill(null), locked: Array(DICE_COUNT).fill(false), name: 'Jogador 1' },
+      { hp: MAX_HP, tokens: 0, dice: Array(DICE_COUNT).fill(null), locked: Array(DICE_COUNT).fill(false), name: mode === 'bot' ? '🤖 Bot' : 'Jogador 2' }
+    ],
+    tokenPool: TOKEN_POOL_MAX,
+    currentPlayer: 0,
+    rollsLeft: MAX_ROLLS,
+    phase: 'roll', // roll | resolve | god-wait
+    gameOver: false
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// SCREEN MANAGEMENT
+// ═══════════════════════════════════════════════════════
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function startGame(mode, restart = false) {
+  botDifficulty = document.getElementById('botDifficulty')?.value || 'medium';
+  currentMode = mode;
+  state = initState(mode);
+  showScreen('game');
+  clearLog();
+  addLog('⚔️ A batalha começa! Que os deuses guiem os dados...', 'resolve');
+  renderAll();
+  // Reset roll state for first turn
+  state.rollsLeft = MAX_ROLLS;
+  updateUI();
+}
+
+// ═══════════════════════════════════════════════════════
+// DICE LOGIC
+// ═══════════════════════════════════════════════════════
+
+function rollDie() {
+  return FACES[Math.floor(Math.random() * FACES.length)];
+}
+
+function doRoll() {
+  if (state.rollsLeft <= 0 || state.phase !== 'roll') return;
+  
+  const p = state.players[state.currentPlayer];
+  
+  // Roll unlocked dice
+  for (let i = 0; i < DICE_COUNT; i++) {
+    if (!p.locked[i]) {
+      p.dice[i] = rollDie();
+    }
+  }
+  
+  state.rollsLeft--;
+  playSound('roll');
+  
+  // Animate dice
+  const diceEls = document.querySelectorAll('.die');
+  diceEls.forEach((el, i) => {
+    if (!p.locked[i]) el.classList.add('rolling');
+  });
+  setTimeout(() => diceEls.forEach(el => el.classList.remove('rolling')), 450);
+  
+  if (state.rollsLeft === 0) {
+    state.phase = 'resolve';
+  }
+  
+  renderDice();
+  updateUI();
+}
+
+function toggleLock(idx) {
+  const p = state.players[state.currentPlayer];
+  if (p.dice[idx] === null) return;
+  if (state.phase !== 'roll') return;
+  if (currentMode === 'bot' && state.currentPlayer === 1) return;
+  
+  p.locked[idx] = !p.locked[idx];
+  renderDice();
+}
+
+// ═══════════════════════════════════════════════════════
+// RESOLVE COMBAT
+// ═══════════════════════════════════════════════════════
+
+function doResolve() {
+  if (state.phase !== 'resolve') return;
+  
+  const cur = state.players[state.currentPlayer];
+  const opp = state.players[1 - state.currentPlayer];
+  const curName = cur.name;
+  const oppName = opp.name;
+  
+  // Count faces (golden counts for its special ability + 1 token, but acts as nothing in combat by default)
+  // For simplicity: golden gives 1 token and adds 1 to a chosen category (we'll use it as random offense/defense)
+  const counts = { axe:0, helmet:0, arrow:0, shield:0, hand:0, golden:0 };
+  cur.dice.forEach(d => { if(d) counts[d]++; });
+  
+  // Golden gives tokens + acts as random beneficial face
+  let goldenBonus = counts.golden;
+  
+  // Award tokens from golden & hand (steal)
+  const poolBefore = state.tokenPool;
+  
+  // Golden: gain tokens from pool
+  if (goldenBonus > 0) {
+    const canGet = Math.min(goldenBonus, state.tokenPool);
+    cur.tokens += canGet;
+    state.tokenPool -= canGet;
+    if (canGet > 0) addLog(`✨ ${curName} ganhou ${canGet} ficha(s) dourada(s)!`, 'god');
+  }
+  
+  // Golden also acts as: add to axe/arrow/helmet/shield equally (we'll add to axe & helmet)
+  const goldenAttack = Math.floor(goldenBonus / 2);
+  const goldenDefense = goldenBonus - goldenAttack;
+  counts.axe += goldenAttack;
+  counts.helmet += goldenDefense;
+  
+  // Hand: steal tokens from opponent
+  const stealable = Math.min(counts.hand, opp.tokens);
+  if (stealable > 0) {
+    cur.tokens += stealable;
+    opp.tokens -= stealable;
+    addLog(`✋ ${curName} roubou ${stealable} ficha(s) de ${oppName}!`, 'god');
+  }
+  
+  // Axe vs Helmet
+  const axeDmg = Math.max(0, counts.axe - opp.dice.filter(d => d === 'helmet').length);
+  // (Wait — we resolve AGAINST what opponent already has? In Orlog, both players show dice simultaneously)
+  // Here we resolve: current player's axes vs opponent's current dice (helmets)
+  // But opponent hasn't rolled yet this round... 
+  // Per the game: we resolve both sides at end of EACH player's turn.
+  // Simplified: attacker's dice resolve against opponent's current dice.
+  
+  const oppCounts = { axe:0, helmet:0, arrow:0, shield:0, hand:0, golden:0 };
+  opp.dice.forEach(d => { if(d) oppCounts[d]++; });
+  
+  const axeBlocked = Math.min(counts.axe, oppCounts.helmet);
+  const axeHits = counts.axe - axeBlocked;
+  
+  const arrowBlocked = Math.min(counts.arrow, oppCounts.shield);
+  const arrowHits = counts.arrow - arrowBlocked;
+  
+  const totalDmg = axeHits + arrowHits;
+  
+  if (axeHits > 0) addLog(`🪓 ${axeHits} machado(s) atingiram ${oppName}!`, 'damage');
+  if (axeBlocked > 0) addLog(`⛑️ ${axeBlocked} machado(s) bloqueado(s) pelo elmo!`);
+  if (arrowHits > 0) addLog(`🏹 ${arrowHits} flecha(s) atingiram ${oppName}!`, 'damage');
+  if (arrowBlocked > 0) addLog(`🛡️ ${arrowBlocked} flecha(s) bloqueada(s) pelo escudo!`);
+  if (totalDmg === 0 && counts.axe === 0 && counts.arrow === 0) addLog(`💨 ${curName} não causou dano neste turno.`);
+  
+  // Apply damage
+  opp.hp = Math.max(0, opp.hp - totalDmg);
+  
+  if (totalDmg > 0) {
+    flashCombat('red');
+    playSound('hit');
+  }
+  
+  // Check victory
+  if (opp.hp <= 0) {
+    endGame(state.currentPlayer);
+    renderAll();
+    return;
+  }
+  
+  // Reset for next turn
+  state.currentPlayer = 1 - state.currentPlayer;
+  const nextP = state.players[state.currentPlayer];
+  nextP.dice = Array(DICE_COUNT).fill(null);
+  nextP.locked = Array(DICE_COUNT).fill(false);
+  state.rollsLeft = MAX_ROLLS;
+  state.phase = 'roll';
+  
+  addLog(`--- Turno de ${nextP.name} ---`, 'resolve');
+  renderAll();
+  
+  // Bot turn
+  if (currentMode === 'bot' && state.currentPlayer === 1) {
+    setTimeout(doBotTurn, 600);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// GOD POWERS
+// ═══════════════════════════════════════════════════════
+
+function useGod(god) {
+  if (currentMode === 'bot' && state.currentPlayer === 1) return;
+  
+  const cur = state.players[state.currentPlayer];
+  const opp = state.players[1 - state.currentPlayer];
+  
+  if (god === 'thor') {
+    const cost = parseInt(prompt(`⚡ Thor — Quantas fichas gastar?\nVocê tem ${cur.tokens}. (1 ficha = 1 dano)`, Math.min(cur.tokens, 3)) || '0');
+    if (isNaN(cost) || cost <= 0) return;
+    if (cost > cur.tokens) { alert('Fichas insuficientes!'); return; }
+    cur.tokens -= cost;
+    opp.hp = Math.max(0, opp.hp - cost);
+    addLog(`⚡ Thor desce! ${cur.name} causa ${cost} de dano!`, 'god');
+    flashCombat('gold');
+    playSound('god');
+    if (opp.hp <= 0) { renderAll(); endGame(state.currentPlayer); return; }
+  } else if (god === 'idun') {
+    const cost = parseInt(prompt(`🍎 Idunn — Quantas fichas gastar?\nVocê tem ${cur.tokens}. (1 ficha = 1 de cura)`, Math.min(cur.tokens, 3)) || '0');
+    if (isNaN(cost) || cost <= 0) return;
+    if (cost > cur.tokens) { alert('Fichas insuficientes!'); return; }
+    const healed = Math.min(cost, MAX_HP - cur.hp);
+    cur.tokens -= cost;
+    cur.hp = Math.min(MAX_HP, cur.hp + cost);
+    addLog(`🍎 Idunn abençoa ${cur.name}! +${healed} de vida!`, 'heal');
+    flashCombat('gold');
+    playSound('god');
+  } else if (god === 'odin') {
+    if (cur.hp <= 2) { alert('Vida insuficiente para o sacrifício!'); return; }
+    if (!confirm(`🪬 Odin — Sacrificar 2 de vida para ganhar 3 fichas?`)) return;
+    const canGet = Math.min(3, state.tokenPool);
+    cur.hp -= 2;
+    cur.tokens += canGet;
+    state.tokenPool -= canGet;
+    addLog(`🪬 Odin aceita o sacrifício de ${cur.name}! -2 vida, +${canGet} fichas!`, 'god');
+    playSound('god');
+    if (cur.hp <= 0) { renderAll(); endGame(1 - state.currentPlayer); return; }
+  }
+  
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════
+// BOT AI
+// ═══════════════════════════════════════════════════════
+
+async function doBotTurn() {
+  if (!state || state.gameOver || state.currentPlayer !== 1) return;
+  
+  showBotThinking(true);
+  
+  const bot = state.players[1];
+  const player = state.players[0];
+  const diff = botDifficulty;
+  
+  // Roll up to 3 times
+  for (let roll = 0; roll < MAX_ROLLS; roll++) {
+    if (state.rollsLeft <= 0) break;
+    
+    await sleep(700);
+    
+    // Roll dice
+    for (let i = 0; i < DICE_COUNT; i++) {
+      if (!bot.locked[i]) bot.dice[i] = rollDie();
+    }
+    state.rollsLeft--;
+    
+    // Animate
+    document.querySelectorAll('.die').forEach((el,i) => {
+      if (!bot.locked[i]) el.classList.add('rolling');
+    });
+    await sleep(450);
+    document.querySelectorAll('.die').forEach(el => el.classList.remove('rolling'));
+    playSound('roll');
+    renderDice();
+    updateUI();
+    
+    if (state.rollsLeft === 0) { state.phase = 'resolve'; break; }
+    
+    // Decide which to lock
+    if (diff === 'easy') {
+      // Random: lock ~40% of dice
+      bot.locked = bot.dice.map(() => Math.random() < 0.4);
+    } else if (diff === 'medium') {
+      // Lock attack dice & useful defense
+      bot.locked = bot.dice.map(d => ['axe','arrow','hand','golden'].includes(d));
+    } else { // hard
+      // Smart: keep attacks, keep defense if player has matching attacks
+      const playerCounts = countFaces(player.dice);
+      bot.locked = bot.dice.map(d => {
+        if (d === 'axe' || d === 'arrow' || d === 'golden') return true;
+        if (d === 'helmet' && playerCounts.axe > 0) return true;
+        if (d === 'shield' && playerCounts.arrow > 0) return true;
+        if (d === 'hand' && player.tokens > 2) return true;
+        return false;
+      });
+    }
+    
+    await sleep(200);
+    renderDice();
+    
+    // After 2nd roll, always resolve
+    if (roll >= 1) { state.phase = 'resolve'; break; }
+  }
+  
+  state.phase = 'resolve';
+  
+  // Bot god powers (hard/medium)
+  if (diff === 'hard' || diff === 'medium') {
+    await sleep(500);
+    const botTokens = bot.tokens;
+    
+    if (diff === 'hard') {
+      // Use Thor if can kill, else use Idunn if low health
+      if (botTokens >= 1 && player.hp <= botTokens) {
+        const spend = Math.min(botTokens, player.hp);
+        bot.tokens -= spend;
+        player.hp = Math.max(0, player.hp - spend);
+        addLog(`⚡ Bot invoca Thor! ${spend} de dano!`, 'god');
+        flashCombat('gold');
+        if (player.hp <= 0) { renderAll(); endGame(1); showBotThinking(false); return; }
+      } else if (bot.hp <= 5 && botTokens >= 2) {
+        const spend = Math.min(botTokens, 3);
+        bot.tokens -= spend;
+        bot.hp = Math.min(MAX_HP, bot.hp + spend);
+        addLog(`🍎 Bot invoca Idunn! +${spend} vida!`, 'heal');
+      } else if (bot.hp > 4 && botTokens < 3 && state.tokenPool >= 3) {
+        bot.hp -= 2;
+        const gain = Math.min(3, state.tokenPool);
+        bot.tokens += gain;
+        state.tokenPool -= gain;
+        addLog(`🪬 Bot invoca Odin! -2 vida, +${gain} fichas!`, 'god');
+      }
+      await sleep(600);
+      renderAll();
+    }
+  }
+  
+  await sleep(600);
+  showBotThinking(false);
+  doResolve();
+}
+
+function countFaces(dice) {
+  const c = { axe:0, helmet:0, arrow:0, shield:0, hand:0, golden:0 };
+  dice.forEach(d => { if(d) c[d]++; });
+  return c;
+}
+
+function showBotThinking(show) {
+  document.getElementById('bot-thinking').classList.toggle('show', show);
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+
+function renderAll() {
+  renderPlayers();
+  renderDice();
+  renderTokenPool();
+  updateUI();
+}
+
+function renderPlayers() {
+  for (let i = 0; i < 2; i++) {
+    const p = state.players[i];
+    const pct = (p.hp / MAX_HP) * 100;
+    document.getElementById(`hp-bar-p${i+1}`).style.width = pct + '%';
+    document.getElementById(`hp-text-p${i+1}`).textContent = `${p.hp} / ${MAX_HP}`;
+    document.getElementById(`tokens-p${i+1}`).textContent = `${p.tokens} 🔮`;
+    document.getElementById(`name-p${i+1}`).textContent = p.name;
+    
+    // Active player highlight
+    const panel = document.getElementById(`panel-p${i+1}`);
+    panel.classList.toggle('active-player', i === state.currentPlayer);
+  }
+}
+
+function renderDice() {
+  const p = state.players[state.currentPlayer];
+  const isBot = currentMode === 'bot' && state.currentPlayer === 1;
+  
+  document.getElementById('dice-owner-label').textContent = `DADOS — ${p.name.toUpperCase()}`;
+  
+  const row = document.getElementById('dice-row');
+  row.innerHTML = '';
+  
+  p.dice.forEach((face, i) => {
+    const die = document.createElement('div');
+    die.className = 'die';
+    if (face === null) die.classList.add('inactive');
+    if (p.locked[i]) die.classList.add('locked');
+    if (face === 'golden') die.classList.add('golden');
+    if (isBot) die.classList.add('inactive');
+    
+    die.innerHTML = `
+      <div class="die-face">${face ? FACE_ICONS[face] : '?'}</div>
+      <div class="die-lock-icon">⚿</div>
+    `;
+    
+    if (!isBot && face !== null) {
+      die.onclick = () => toggleLock(i);
+    }
+    
+    row.appendChild(die);
+  });
+}
+
+function renderTokenPool() {
+  const poolGems = document.getElementById('pool-gems');
+  const count = state.tokenPool;
+  document.getElementById('pool-count').textContent = count + ' 🔮';
+  
+  // Show up to 20 gem icons
+  poolGems.innerHTML = '';
+  const show = Math.min(count, 20);
+  for (let i = 0; i < show; i++) {
+    const gem = document.createElement('div');
+    gem.className = 'token-gem';
+    poolGems.appendChild(gem);
+  }
+}
+
+function updateUI() {
+  const isBot = currentMode === 'bot' && state.currentPlayer === 1;
+  const canRoll = state.rollsLeft > 0 && state.phase === 'roll' && !isBot && !state.gameOver;
+  const canResolve = (state.phase === 'resolve' || state.rollsLeft < MAX_ROLLS) && !isBot && !state.gameOver;
+  
+  document.getElementById('btn-roll').disabled = !canRoll;
+  document.getElementById('btn-resolve').disabled = !(state.phase === 'resolve') || isBot || state.gameOver;
+  
+  // Roll pips
+  for (let i = 0; i < 3; i++) {
+    const pip = document.getElementById(`pip${i}`);
+    pip.classList.toggle('used', i >= state.rollsLeft);
+  }
+  
+  // Phase label
+  const phases = { roll: 'ROLAGEM', resolve: 'RESOLVER' };
+  document.getElementById('phase-label').textContent = `FASE: ${phases[state.phase] || state.phase.toUpperCase()}`;
+  
+  // God powers availability
+  const cur = state.players[state.currentPlayer];
+  const godCards = ['thor','idun','odin'];
+  godCards.forEach(g => {
+    const el = document.getElementById(`god-${g}`);
+    let disabled = isBot || state.gameOver;
+    if (g === 'thor' || g === 'idun') disabled = disabled || cur.tokens < 1;
+    if (g === 'odin') disabled = disabled || cur.hp <= 2;
+    el.classList.toggle('disabled', disabled);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// GAME OVER
+// ═══════════════════════════════════════════════════════
+
+function endGame(winnerIdx) {
+  state.gameOver = true;
+  const winner = state.players[winnerIdx];
+  
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('result-rune').textContent = winnerIdx === 0 ? '🏆' : '🤖';
+  document.getElementById('result-title').textContent = `${winner.name} Venceu!`;
+  document.getElementById('result-sub').textContent = winnerIdx === 0 
+    ? 'Os deuses sorriem para ti, guerreiro!' 
+    : 'O destino foi selado pela lâmina do oponente.';
+  overlay.classList.add('show');
+  
+  playSound('victory');
+  addLog(`🏆 ${winner.name} venceu a batalha!`, 'resolve');
+}
+
+// ═══════════════════════════════════════════════════════
+// LOG
+// ═══════════════════════════════════════════════════════
+
+function addLog(msg, type = '') {
+  const log = document.getElementById('battle-log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  entry.textContent = msg;
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('battle-log').innerHTML = '';
+}
+
+// ═══════════════════════════════════════════════════════
+// EFFECTS
+// ═══════════════════════════════════════════════════════
+
+function flashCombat(color) {
+  const el = document.getElementById('combatFlash');
+  el.className = `combat-flash ${color} show`;
+  setTimeout(() => el.classList.remove('show'), 300);
+}
+
+// Web Audio API sounds
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playSound(type) {
+  try {
+    const ctx = getAudio();
+    const now = ctx.currentTime;
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    if (type === 'roll') {
+      // Dice rolling: rapid noise-like bursts
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now); osc.stop(now + 0.35);
+    } else if (type === 'hit') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'god') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+      osc.frequency.exponentialRampToValueAtTime(200, now + 0.5);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc.start(now); osc.stop(now + 0.55);
+    } else if (type === 'victory') {
+      [0, 0.15, 0.3].forEach((delay, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine';
+        const freqs = [440, 550, 660];
+        o.frequency.setValueAtTime(freqs[i], now + delay);
+        g.gain.setValueAtTime(0.08, now + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.4);
+        o.start(now + delay); o.stop(now + delay + 0.4);
+      });
+      return;
+    }
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+
+function confirmQuit() {
+  if (confirm('Abandonar a batalha?')) {
+    document.getElementById('result-overlay').classList.remove('show');
+    showScreen('title');
+  }
+}
+
+// Close result overlay
+document.getElementById('result-overlay').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('show');
+});
+</script>
+</body>
+</html>
